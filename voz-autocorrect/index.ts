@@ -81,6 +81,8 @@ If yes, answer only with the corrected word or words as written in the middle of
 }
 
 export default defineExtension((voz) => {
+  // Voz 0.0.5 gives extensions neither voz.log nor voz.events
+  const log = (message: string) => (voz.log ? voz.log(message) : console.log(message));
   const settings = voz.settings({
     pairs: { type: "string", title: "Replacements", description: "wrong=right, separated by ;", default: "" },
     learn: { type: "boolean", title: "Learn from my corrections", default: true },
@@ -100,7 +102,7 @@ export default defineExtension((voz) => {
     );
 
   voz.on("beforeInsert", ({ text }) => ({ text: apply(text) }));
-  voz.events.on<{ text: string }>("meeting:transcript", (transcript) => {
+  voz.events?.on<{ text: string }>("meeting:transcript", (transcript) => {
     transcript.text = apply(transcript.text);
   });
 
@@ -125,7 +127,7 @@ export default defineExtension((voz) => {
       const to = settings.confirm ? await confirmedByClaude(pair, candidate.count, candidate.kept, candidate.example) : pair.to;
       if (!to) {
         learned.rejected.push(pair);
-        voz.log(`Rejected ${pair.from} → ${pair.to}`);
+        log(`Rejected ${pair.from} → ${pair.to}`);
         continue;
       }
       learned.rules.push({ from: pair.from, to });
@@ -136,6 +138,6 @@ export default defineExtension((voz) => {
   }
 
   voz.on("afterInsert", ({ text }, ctx) => {
-    if (settings.learn) learn(text, ctx.notify).catch((error) => voz.log(`Learning failed: ${error}`));
+    if (settings.learn) learn(text, ctx.notify).catch((error) => log(`Learning failed: ${error}`));
   });
 });

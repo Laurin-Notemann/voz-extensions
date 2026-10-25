@@ -32,6 +32,8 @@ function vocabulary(): string[] {
 }
 
 export default defineExtension((voz) => {
+  // Voz 0.0.5 gives extensions neither voz.log nor voz.events
+  const log = (message: string) => (voz.log ? voz.log(message) : console.log(message));
   const settings = voz.settings({
     hotkey: { type: "string", title: "Hotkey", description: "Starts and stops a recording", default: "ctrl+opt+m" },
     folder: { type: "string", title: "Folder", description: "Where transcripts and recordings go", default: join(homedir(), "Documents/Voz Meetings") },
@@ -48,7 +50,7 @@ export default defineExtension((voz) => {
     child.unref();
     return Bun.sleep(1000).then(async () => {
       if (child.exitCode !== null) {
-        voz.log(`Recorder failed: ${await new Response(child.stderr).text()}`);
+        log(`Recorder failed: ${await new Response(child.stderr).text()}`);
         return ctx.notify("Meeting recording failed");
       }
       writeFileSync(statePath, JSON.stringify({ pid: child.pid, name, audio }));
@@ -64,7 +66,7 @@ export default defineExtension((voz) => {
     transcribe(recording)
       .then((path) => ctx.notify(`${settings.clipboard ? "Copied and saved" : "Saved"} ${path.split("/").pop()}`))
       .catch((error) => {
-        voz.log(`Transcription failed: ${error}`);
+        log(`Transcription failed: ${error}`);
         ctx.notify("Transcription failed, the recording is in the meeting folder");
       });
   }
@@ -80,7 +82,7 @@ export default defineExtension((voz) => {
     if ((await run.exited) !== 0) throw new Error(await new Response(run.stderr).text());
     // Other extensions can rewrite the transcript by changing payload.text
     const transcript = { text: output.split("\n").filter((line) => !/^engine .*, transcription [0-9.]+s$/.test(line)).join("\n").trim() };
-    voz.events.emit("meeting:transcript", transcript);
+    voz.events?.emit("meeting:transcript", transcript);
 
     const path = join(settings.folder, `${recording.name}.md`);
     writeFileSync(path, `# Meeting ${recording.name}\n\n${transcript.text}\n`);

@@ -23,7 +23,7 @@ Change them on the Extensions page in Voz.
 Other extensions can rewrite a transcript before it is saved:
 
 ```ts
-voz.events.on<{ text: string }>("meeting:transcript", (transcript) => {
+voz.events?.on<{ text: string }>("meeting:transcript", (transcript) => {
   transcript.text = transcript.text.replaceAll("Cloud", "Claude");
 });
 ```
